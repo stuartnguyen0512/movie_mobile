@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
-const MovieDetails = () => {
+const ShowDetails = () => {
   return (
     <View>
       <Text></Text>
@@ -8,6 +8,6 @@ const MovieDetails = () => {
   );
 };
 
-export default MovieDetails;
+export default ShowDetails;
 
 const styles = StyleSheet.create({});
