@@ -66,3 +66,41 @@
 ### 6. Giới hạn số lượng dữ liệu fetch về
 - Endpoint `/shows?page=0` của TVmaze trả nguyên 240 show/lần gọi (không có tham số "limit" nhỏ hơn) — nếu không tự giới hạn, `FlatList` (đặc biệt khi đã tắt `scrollEnabled`) sẽ render hết toàn bộ, vừa chậm UI vừa lãng phí network.
 - Nên giới hạn ngay ở tầng gọi API (`.slice(0, n)` trong `services/api.ts`) thay vì chỉ giới hạn lúc hiển thị, để giảm cả dữ liệu tải về lẫn số lượng render, và không phải nhớ giới hạn lại thủ công ở từng nơi gọi hàm.
+
+## 2026-07-27 — 2026-07-28: Spread/rest operator, style Home screen, xây Search screen
+
+### 1. Spread operator vs Rest parameter (cùng dấu `...`, ngược nghĩa nhau)
+- **Spread** (`{...item}` lúc gọi/truyền): "bung ra" — lấy 1 object, tách thành nhiều field/prop riêng lẻ. VD `<ShowCard {...item} />` tương đương truyền tay từng prop `id={item.id} name={item.name} ...`.
+- **Rest** (`...rest` lúc khai báo tham số hoặc destructure): "gom lại" — nhiều giá trị rời rạc gộp thành 1 mảng/object. VD `const { placeholder, onPress, ...rest } = props`.
+- Cả 2 có thể xuất hiện cùng lúc trong 1 đoạn code với vai trò khác nhau tùy vị trí (khai báo vs sử dụng).
+- Spread cũng dùng để copy + override 1 field của object mà không sửa trực tiếp bản gốc: `{ ...original, name: "New" }` — pattern quan trọng khi update state trong React.
+
+### 2. `renderItem` của FlatList là render prop
+- Giống `tabBarIcon` đã học trước đó: FlatList tự động gọi `renderItem` cho từng phần tử trong `data`, tự truyền vào `{ item, index }`. Không phải tự gọi tay.
+- Thiếu `renderItem` thì FlatList biết có bao nhiêu item, biết layout (`numColumns`...) nhưng không biết vẽ item ra sao.
+
+### 3. Đổi field data giữa các API không chỉ là đổi tên — phải đổi cả logic quy đổi giá trị
+- TVmaze `rating.average` cùng thang điểm 0–10 như TMDB `vote_average`, nên logic `Math.round(x / 2)` (quy đổi ra thang sao 0-5) áp dụng được y hệt, chỉ cần đổi tên field.
+- Nhưng `image.medium` của TVmaze là **URL đầy đủ** (absolute URL), khác `poster_path` của TMDB là **đường dẫn tương đối** cần tự ghép thêm base URL + kích thước ảnh. Copy nguyên logic ghép chuỗi URL từ video (TMDB) sẽ sai hoàn toàn khi áp dụng cho TVmaze — cần đọc kỹ response thật trước khi quyết định giữ/bỏ phần nào của code gốc.
+- Bài học chung: khi đổi nguồn dữ liệu, không chỉ rename field theo interface, mà phải kiểm tra từng "hình dạng" giá trị (string thường vs object lồng, relative path vs absolute URL, optional/nullable hay không) trước khi tái sử dụng logic cũ.
+
+### 4. `??` (nullish coalescing) vs default value trong object destructuring — khác nhau ở `null`
+- Default destructuring (`const { data: shows = [] } = ...`) **chỉ áp dụng khi giá trị là `undefined`**, KHÔNG áp dụng khi giá trị là `null`.
+- Nếu state khởi tạo bằng `useState<T | null>(null)` (như trong `useFetch`), destructure với `= []` vẫn giữ nguyên type `T | null` vì TypeScript biết rõ giá trị ban đầu có thể là `null` thật sự — dẫn đến lỗi "possibly null" khi bỏ `?`/`!`.
+- Muốn xử lý đúng cả `null` lẫn `undefined`, dùng `??` thay vì default destructuring: `const shows = showsRaw ?? []`.
+- `??` khác `||`: `0 || 5` → `5` (vì `0` là falsy), nhưng `0 ?? 5` → `0` (vì `??` chỉ quan tâm `null`/`undefined`, không quan tâm falsy khác). Quan trọng khi giá trị hợp lệ có thể là `0`.
+
+### 5. Debounce khi search theo mỗi lần gõ phím
+- Nếu gọi API ngay mỗi ký tự user gõ, sẽ tốn rất nhiều request thừa. Debounce trì hoãn gọi API 1 khoảng thời gian (VD 500ms) sau lần gõ cuối.
+- Cài đặt bằng `useEffect` + `setTimeout`, dependency là giá trị đang theo dõi (VD `[searchQuery]`) để effect chạy lại mỗi lần giá trị đổi.
+- **Cleanup function của `useEffect` phải là 1 function, không phải kết quả gọi function**: `return () => clearTimeout(timeoutId)` đúng, còn `return clearTimeout(timeoutId)` sai — cách sai này gọi `clearTimeout` ngay lập tức (hủy luôn timer vừa tạo) thay vì đưa 1 function cho React tự gọi lúc cần cleanup (trước khi effect chạy lại hoặc lúc unmount).
+- `useFetch(fn, false)` — tham số `autoFetch=false` để KHÔNG tự fetch lúc mount, chỉ fetch khi có hành động cụ thể (ở đây là debounce timer gọi `refetch`).
+
+### 6. `ListHeaderComponent` / `ListEmptyComponent` của FlatList — cách đúng để trộn nhiều loại nội dung mà không lồng ScrollView
+- `ListHeaderComponent`: nội dung hiện phía trên danh sách (logo, SearchBar, trạng thái loading/error, tiêu đề) — cùng cuộn với FlatList vì nằm trong chính nó, không phải 1 ScrollView riêng.
+- `ListEmptyComponent`: hiện khi `data` rỗng, dùng để phân biệt 2 trạng thái khác nhau (chưa gõ gì / gõ nhưng không có kết quả) tùy điều kiện.
+- Đây là cách "đúng chuẩn" hơn so với `scrollEnabled={false}` (dùng ở Home screen bài trước) khi toàn bộ trang chỉ xoay quanh 1 danh sách — giữ được virtualization thật sự của FlatList, không phải đánh đổi hiệu năng.
+
+### 7. Props optional để không phá vỡ chỗ gọi cũ khi mở rộng component
+- Thêm `value?: string`, `onChangeText?: (text: string) => void` vào `SearchBar` (vốn trước đó hard-code `value=""`, `onChangeText={() => {}}`) để dùng làm controlled input cho Search screen.
+- Đặt optional (`?`) để chỗ gọi cũ ở Home screen (không truyền 2 field này) vẫn compile và chạy được — nếu bắt buộc sẽ phá vỡ toàn bộ nơi đang dùng component theo cách cũ.
