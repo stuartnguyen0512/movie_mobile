@@ -35,7 +35,6 @@ interface Show {
   } | null;
   image: {
     medium: string;
-    original: string;
   } | null;
   summary: string | null;
   updated: number;

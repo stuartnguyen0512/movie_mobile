@@ -62,11 +62,11 @@ const Search = () => {
   // searchQuery đổi (khác với useFetch dùng [] chỉ chạy 1 lần).
   // ────────────────────────────────────────────────────────────
   useEffect(() => {
-    // create timeoutID
+    //   // create timeoutID
     const timeoutId = setTimeout(async () => {
-      // check if user is searching
+      //     // check if user is searching
       if (searchQuery.trim()) {
-        // call loadShows
+        //       // call loadShows
         await loadShows();
         // reset if not
       } else reset();

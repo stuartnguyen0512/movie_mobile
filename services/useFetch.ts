@@ -59,9 +59,9 @@ const useFetch = <T>(fetchFunction: () => Promise<T>, autoFetch = true) => {
   // (data -> null, error -> null, loading -> false)
   // ────────────────────────────────────────────────────────────
   function reset() {
+    setLoading(false);
     setData(null);
     setError(null);
-    setLoading(false);
   }
   // ────────────────────────────────────────────────────────────
   // TODO 5: Dùng useEffect để tự động gọi fetchData khi component

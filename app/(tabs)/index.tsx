@@ -22,6 +22,7 @@ export default function Index() {
     loading: showsLoading,
     error: showsError,
   } = useFetch(() => fetchShows());
+
   return (
     <View className="flex-1 bg-primary">
       <Image source={images.bg} className="absolute w-full z-0" />
@@ -43,7 +44,7 @@ export default function Index() {
             className="mt-10 self-center"
           />
         ) : showsError ? (
-          <Text>Error: {showsError?.message}</Text>
+          <Text className="text-yellow-400">Error: {showsError?.message}</Text>
         ) : (
           <View className="flex-1 mt-5">
             <SearchBar
