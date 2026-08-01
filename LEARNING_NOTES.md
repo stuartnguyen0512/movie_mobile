@@ -144,3 +144,41 @@
 - Từ nay, khi gặp đoạn code/TODO có concept/pattern MỚI (không chỉ khi mắc lỗi), AI cần chủ động: liệt kê tên concept trước → cho ví dụ minh hoạ + giải thích tại sao pattern tồn tại + trade-off → dẫn nguồn tài liệu chính thức (React Native docs, React docs, Expo docs) → rồi mới đưa TODO để tự viết code.
 - Mục tiêu: học không chỉ qua debug lỗi đã mắc, mà chủ động nhận diện pattern ngay cả khi code không có bug, hướng tới khả năng tự tin viết clean code, tối ưu, và tự guide AI xây dựng app scalable.
 
+## 2026-07-31 — 2026-08-01: Bug-injection debug practice, Appwrite Trending Searches, ?? vs &&
+
+### 1. Ôn tập debug qua bug-injection (4 bug, tách branch riêng)
+- Trước khi cài bug thực hành, luôn commit checkpoint code hiện tại vào main trước — tránh lẫn lộn giữa "bug cố ý" và "thay đổi thật" khi diff/revert sau này.
+- Tạo 1 branch riêng (practice/debug-session-2) chỉ để chứa bug thực hành, không đụng main — nếu commit luôn (kể cả trên branch practice) sẽ an toàn hơn để tránh mất khi lỡ tay git checkout -- . (discard).
+- 4 bug thực hành: sai query param (?q= vs ?query= không khớp docs TVmaze thật), quên setLoading(false) trong finally (loading treo mãi), điều kiện ListEmptyComponent bị đảo ngược (!loading → loading), thiếu ?? 0 khi rating.average có thể null.
+- Bài học chung: bug thực tế thường không "báo lỗi đỏ ngay" — nhiều bug chỉ lộ khi thao tác đúng luồng cụ thể (search có chữ, gõ debounce, cuộn tới show có rating null...), nên cần cả tsc --noEmit (bắt lỗi type ngay) LẪN test thủ công trên app thật (bắt lỗi logic/runtime).
+
+### 2. .env và .gitignore — vì sao không nên commit file .env dù chỉ chứa giá trị "public"
+- .gitignore mặc định của dự án chỉ ignore .env*.local, KHÔNG ignore .env thường — dễ vô tình commit nhầm nếu không kiểm tra kỹ trước khi git add -A.
+- Dù giá trị bên trong (project ID, endpoint) không phải secret key bí mật, vẫn nên giữ thói quen không commit .env — để dễ đổi giá trị theo từng máy/môi trường mà không phải sửa qua git, và tránh thói quen xấu lan sang lúc thêm biến thật sự nhạy cảm sau này.
+- Quy trình đúng: sửa .gitignore (thêm .env) TRƯỚC khi git add, không phải sau — nếu file đã lỡ được git add, cần git reset <file> để bỏ ra khỏi staging trước khi gitignore có tác dụng.
+
+### 3. Appwrite Databases — CRUD cơ bản cho tính năng "Trending Searches"
+- Client (kết nối) và Databases (thao tác dữ liệu) là 2 class tách riêng trong Appwrite SDK — mọi service (Databases, Storage, Account...) đều nhận chung 1 client đã khởi tạo, không cần tạo lại connection cho từng service.
+- Query.equal("field", value) — cách "khai báo" (declarative) để lọc dữ liệu, thay vì raw query string — giúp SDK tự validate cú pháp và hoạt động nhất quán trên nhiều ngôn ngữ/nền tảng khác nhau.
+- ID.unique() — sinh ID ngẫu nhiên khi tạo mới document; KHÔNG dùng khi update (update cần ID đã tồn tại, lấy từ field đặc biệt $id mà Appwrite tự sinh cho mọi document, không phải field id tự đặt).
+- Pattern "upsert" (update nếu đã có, insert nếu chưa): listDocuments với Query.equal để tìm trước → nếu có kết quả thì updateDocument, không có thì createDocument. Đây là pattern nghiệp vụ chung, không phải API riêng của Appwrite.
+
+### 4. Field name mismatch giữa các "hệ thống" khác nhau — lỗi dễ mắc nhất buổi này
+- Xảy ra 2 lần liên tiếp: interface Show (đại diện response TVmaze thật) và interface TrendingShow (đại diện document Appwrite) dùng tên field khác nhau cho cùng khái niệm "tên show" — Show.name (đúng theo TVmaze) vs cột Appwrite title (do tự đặt tên cột lúc tạo collection).
+- Bug thực tế xảy ra khi vô tình đổi field ở SAI interface (đổi name→title trong Show thay vì trong TrendingShow) — TypeScript compile sạch (vì nó chỉ tự kiểm tra tính nhất quán NỘI BỘ giữa các file, không biết response thật của TVmaze API có field gì), nhưng runtime sẽ luôn nhận undefined vì field đó không tồn tại trong response thật.
+- Bài học cốt lõi: khi 2 hệ thống khác nhau biểu diễn cùng 1 khái niệm bằng field name khác nhau, không nên đổi field ở phía "nguồn dữ liệu thật" (ở đây là Show, phải khớp đúng TVmaze) — chỉ nên "dịch" (map) field tại đúng 1 điểm chuyển giao (VD title: show.name khi lưu vào Appwrite trong updateSearchCount), giữ nguyên field gốc ở khắp nơi còn lại.
+- tsc --noEmit pass không đồng nghĩa code đúng — chỉ đảm bảo tính nhất quán kiểu dữ liệu bên trong codebase, không đảm bảo interface khớp với shape thật của dữ liệu bên ngoài (API response, database schema).
+
+### 5. ?? (nullish coalescing) vs && (logical AND) — khi nào dùng cái nào
+- Câu hỏi tự kiểm tra: "Tôi đang muốn LẤY RA 1 GIÁ TRỊ để dùng tiếp, hay đang muốn QUYẾT ĐỊNH có render JSX hay không?" → lấy giá trị (có thể null/undefined) dùng ??; điều kiện render dùng && (hoặc ternary nếu có nhánh else khác).
+- ?? chỉ nhảy sang vế phải khi vế trái là chính xác null hoặc undefined — KHÔNG áp dụng cho các giá trị falsy khác (0, "", false, NaN). Đây là lý do ?? ra đời: phân biệt "giá trị hợp lệ nhưng falsy" với "thực sự không có giá trị".
+- && dùng short-circuit evaluation: nếu vế trái falsy (mọi loại falsy, không chỉ null/undefined) thì dừng lại và trả về CHÍNH vế trái đó (không đánh giá vế phải); chỉ khi vế trái truthy mới tiếp tục trả về vế phải.
+- Bug thực tế gặp phải: viết (trendingShows && trendingShows.length > 0) ?? (JSX) — vế trái luôn ra true/false/undefined, không bao giờ ra null, nên ?? gần như không bao giờ "nhảy phải" đúng lúc mong muốn (logic bị đảo ngược hoàn toàn so với ý định). Sửa đúng: dùng toàn bộ && nối chuỗi (a && b && (JSX)), không trộn ?? vào giữa các điều kiện boolean.
+- Cú pháp: JavaScript/TypeScript cấm viết trực tiếp a && b ?? c không có ngoặc (SyntaxError) — vì độ ưu tiên giữa 2 toán tử dễ gây hiểu nhầm, buộc phải tự thêm ngoặc rõ ràng nếu thật sự cần trộn cả 2 trong 1 biểu thức.
+
+### 6. Props "phẳng" (flat) vs "gói" (wrapped) — vì sao có component spread được, có component thì không
+- ShowCard nhận props kiểu Show (phẳng — mỗi field của Show là 1 prop riêng) → gọi được bằng spread: <ShowCard {...item} />.
+- TrendingCard nhận TrendingCardProps (gói — chỉ 2 field show và index, trong đó show chứa nguyên object TrendingShow lồng bên trong) → không spread trực tiếp {...item} được, vì shape props không khớp 1-1 với item; phải gọi tường minh <TrendingCard show={item} index={index} />.
+- Lý do gốc rễ không chỉ vì "có thêm field index" — là vì 2 component chọn 2 kiểu thiết kế props khác nhau. Nếu muốn spread được kể cả khi có thêm field ngoài, cần đổi props sang kiểu phẳng và dùng intersection type (TrendingShow & { index: number }) — & nghĩa là "1 object phải thỏa mãn ĐỒNG THỜI cả 2 type cộng lại", khác với union | ("1 trong 2 type").
+- Trong thực tế, cách viết tường minh (show={item} index={index}) thường dễ đọc hơn cách cố "làm phẳng" rồi spread — nhất là khi props có ý nghĩa nhóm rõ ràng (1 object show + 1 số index riêng biệt, không phải cùng 1 "loại" dữ liệu).
+

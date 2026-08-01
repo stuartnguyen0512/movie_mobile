@@ -12,8 +12,9 @@ import SearchBar from "@/components/SearchBar";
 import { useRouter } from "expo-router";
 import useFetch from "@/services/useFetch";
 import { fetchShows } from "@/services/api";
-// TODO 1: Bỏ comment dòng import bên dưới sau khi ShowCard viết xong
 import ShowCard from "@/components/ShowCard";
+import TrendingCard from "@/components/TrendingCard";
+import { getTrendingShows } from "@/services/appwrite";
 
 export default function Index() {
   const router = useRouter();
@@ -22,6 +23,8 @@ export default function Index() {
     loading: showsLoading,
     error: showsError,
   } = useFetch(() => fetchShows());
+
+  const { data: trendingShows } = useFetch(() => getTrendingShows());
 
   return (
     <View className="flex-1 bg-primary">
@@ -32,10 +35,6 @@ export default function Index() {
         contentContainerStyle={{ minHeight: "100%", paddingBottom: 10 }}
       >
         <Image source={icons.logo} className="w-12 h-10 mt-20 mb-5 mx-auto" />
-
-        {/* HACK: if isloading = true => indicator 
-                  if errors => return error message 
-                  else return search view*/}
 
         {showsLoading ? (
           <ActivityIndicator
@@ -52,7 +51,25 @@ export default function Index() {
               placeholder="Search for a show"
             />
             <>
-              <Text className="text-lg size-5 font-bold mt-5 mb-3">
+              {trendingShows && trendingShows.length > 0 && (
+                <View className="mt-10">
+                  <Text className="text-lg text-white font-bold mb-3">
+                    Trending Shows
+                  </Text>
+                  <FlatList
+                    data={trendingShows}
+                    keyExtractor={(item) => item.show_id.toString()}
+                    horizontal={true}
+                    showsHorizontalScrollIndicator={false}
+                    ItemSeparatorComponent={() => <View className="w-4" />}
+                    contentContainerStyle={{ paddingRight: 20 }}
+                    renderItem={({ item, index }) => (
+                      <TrendingCard show={item} index={index} />
+                    )}
+                  />
+                </View>
+              )}
+              <Text className="text-lg text-white font-bold mt-5 mb-3">
                 Latest Shows
               </Text>
               <FlatList
@@ -60,19 +77,6 @@ export default function Index() {
                 keyExtractor={(item) => item.id.toString()}
                 numColumns={3}
                 scrollEnabled={false}
-                // ────────────────────────────────────────────────────
-                // TODO 2: Viết renderItem cho FlatList
-                //
-                // FlatList tự động gọi function này cho TỪNG phần tử
-                // trong mảng "data", tự truyền vào { item }.
-                //
-                // Việc cần làm: return JSX <ShowCard {...item} /> để
-                // hiển thị show đó. Dùng spread operator {...item} để
-                // bung 1 show object thành các props rời (id, name,
-                // image, rating, premiered...) khớp với cách ShowCard
-                // khai báo destructuring props.
-                // ────────────────────────────────────────────────────
-
                 renderItem={({ item }) => <ShowCard {...item} />}
                 columnWrapperStyle={{
                   justifyContent: "flex-start",

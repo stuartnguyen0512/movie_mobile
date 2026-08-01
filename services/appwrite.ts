@@ -1,22 +1,55 @@
-// ────────────────────────────────────────────────────────────
-// TODO 1: Import Client từ "react-native-appwrite"
-// ────────────────────────────────────────────────────────────
-import { Client } from "react-native-appwrite";
-// ────────────────────────────────────────────────────────────
-// TODO 2: Tạo và export 1 instance Client như biến "global"
-// (singleton pattern — xem giải thích ở phần chat trước TODO này)
-//
+import { Client, Databases, ID, Query } from "react-native-appwrite";
+
 const APPWRITE_ENDPOINT = process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT;
 const PROJECT_ID = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
+const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID;
+const COLLECTION_ID = process.env.EXPO_PUBLIC_APPWRITE_COLLECTION_ID;
 
-if (!PROJECT_ID || !APPWRITE_ENDPOINT) {
+if (!PROJECT_ID || !APPWRITE_ENDPOINT || !DATABASE_ID || !COLLECTION_ID) {
   throw new Error("Missing Appwrite env vars — check your .env file");
 }
-// Dùng đúng project details đã cho:
-//   - setProject("6a64e3b5001204221384")
-//   - setEndpoint("https://tor.cloud.appwrite.io/v1")
-const client = new Client()
+
+export const client = new Client()
   .setProject(PROJECT_ID)
   .setEndpoint(APPWRITE_ENDPOINT);
 
-export default client;
+const database = new Databases(client);
+
+export const updateSearchCount = async (query: string, show: Show) => {
+  try {
+    const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
+      Query.equal("searchTerm", query),
+    ]);
+    if (result.documents.length > 0) {
+      const existingDoc = result.documents[0];
+      database.updateDocument(DATABASE_ID, COLLECTION_ID, existingDoc.$id, {
+        count: existingDoc.count + 1,
+      });
+    } else {
+      database.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
+        searchTerm: query,
+        show_id: show.id,
+        title: show.name,
+        count: 1,
+        poster_url: show.image?.medium ?? "",
+      });
+    }
+  } catch (err) {
+    console.log({ err });
+  }
+};
+
+export const getTrendingShows = async (): Promise<
+  TrendingShow[] | undefined
+> => {
+  try {
+    const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID, [
+      Query.limit(5),
+      Query.orderDesc("count"),
+    ]);
+    return result.documents as unknown as TrendingShow[];
+  } catch (err) {
+    console.log({ err });
+    return undefined;
+  }
+};
