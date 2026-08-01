@@ -1,7 +1,7 @@
 import "./global.css";
 import { useEffect } from "react";
 import { Stack } from "expo-router";
-import client from "@/services/appwrite";
+import { client } from "@/services/appwrite";
 
 export default function RootLayout() {
   // ────────────────────────────────────────────────────────────

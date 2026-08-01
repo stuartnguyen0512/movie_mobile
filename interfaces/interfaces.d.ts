@@ -43,7 +43,7 @@ interface Show {
 interface TrendingShow {
   searchTerm: string;
   show_id: number;
-  name: string;
+  title: string;
   count: number;
   poster_url: string;
 }
