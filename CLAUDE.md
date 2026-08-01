@@ -62,16 +62,26 @@ c) **Nếu là concept ĐÃ DẠY**, không cần lặp lại — chỉ nhắc l
 
 ## 🔄 Git Workflow Đã Thống Nhất
 
-Khi bạn nói "tạo PR" cho feature/fix:
+### Đầu buổi học (bắt đầu 1 TODO/bug thực hành mới)
+- **Luôn tạo branch mới trước khi sửa code** — KHÔNG code trực tiếp trên `main`
+- Tên branch theo loại việc:
+  - `feature/xxx` — feature mới
+  - `fix/xxx` — sửa bug
+  - `practice/xxx` — thực hành/debug (bug-injection để luyện tập)
 
-1. **Xem `git diff`** để hiểu vừa làm gì
-2. **Tạo branch tên phù hợp:**
-   - `feature/xxx` — feature mới
-   - `fix/xxx` — sửa bug
-   - `practice/xxx` — thực hành/debug
-3. **Commit + push lên origin**
-4. **Checkout về main** + xóa local branch
-5. **Giữ remote branch** để user tự tạo PR trên GitHub
+### Trong buổi học
+- **Lệnh nhỏ, đọc-only** (`git status`, `git diff`, `tsc --noEmit`, đọc file, `git log`...): tự làm thoải mái, không cần hỏi trước
+- **Khi thắc mắc "user đã làm X trong code chưa?"**: PHẢI hỏi user trực tiếp, KHÔNG tự chạy lệnh đi tìm/kiểm tra code của user — vì hỏi giúp user tự nhận ra chỗ mình hiểu sai/quên làm, đúng tinh thần tutor
+- **Không tự ý commit/push** giữa chừng buổi học nếu user không yêu cầu
+
+### Cuối buổi học (khi user nói "tổng hợp" / "xong buổi học")
+1. `git pull` để lấy code mới nhất
+2. Hỏi user: "Bạn có muốn tạo PR cho những gì đã học hôm nay không?"
+3. Nếu user trả lời **có**: tự tạo branch (nếu chưa có) → commit → push → **tự tạo PR luôn** (dùng `gh pr create`, không chỉ đưa link cho user tự bấm) → checkout về `main` → xóa local branch
+4. User chỉ cần lên remote/GitHub xem lại code và merge
+
+### Meta-rule: Cập nhật CLAUDE.md
+- Mỗi khi user yêu cầu điều gì **liên quan đến workflow** (cách làm việc, quy trình git, cách tương tác...), phải HỎI user xem có muốn thêm điều đó vào CLAUDE.md vĩnh viễn không, trước khi coi đó là quy tắc áp dụng lâu dài
 
 ---
 
