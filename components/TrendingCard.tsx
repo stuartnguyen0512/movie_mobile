@@ -3,6 +3,11 @@ import { Text, Image, TouchableOpacity, View } from "react-native";
 
 import { images } from "@/constants/images";
 
+interface TrendingCardProps {
+  show: TrendingShow;
+  index: number;
+}
+
 const TrendingCard = ({
   show: { show_id, title, poster_url },
   index,

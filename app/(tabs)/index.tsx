@@ -9,7 +9,8 @@ import {
   View,
 } from "react-native";
 import SearchBar from "@/components/SearchBar";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import useFetch from "@/services/useFetch";
 import { fetchShows } from "@/services/api";
 import ShowCard from "@/components/ShowCard";
@@ -24,7 +25,16 @@ export default function Index() {
     error: showsError,
   } = useFetch(() => fetchShows());
 
-  const { data: trendingShows } = useFetch(() => getTrendingShows());
+  const { data: trendingShows, refetch: refetchTrending } = useFetch(
+    () => getTrendingShows(),
+  );
+
+  // Refetch trending shows mỗi khi Home screen lấy focus (user quay lại từ Search)
+  useFocusEffect(
+    useCallback(() => {
+      refetchTrending();
+    }, [refetchTrending]),
+  );
 
   return (
     <View className="flex-1 bg-primary">

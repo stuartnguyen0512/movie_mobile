@@ -48,11 +48,11 @@ interface TrendingShow {
   poster_url: string;
 }
 
-// TVmaze's /shows/:id endpoint returns the same shape as the show index,
-// so ShowDetails and Show are structurally identical for now.
-type ShowDetails = Show;
-
 interface TrendingCardProps {
   show: TrendingShow;
   index: number;
 }
+
+// TVmaze's /shows/:id endpoint returns the same shape as the show index,
+// so ShowDetails and Show are structurally identical for now.
+type ShowDetails = Show;
