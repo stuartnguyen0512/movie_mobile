@@ -1,27 +1,24 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 const useFetch = <T>(fetchFunction: () => Promise<T>, autoFetch = true) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchData = useCallback(
-    async function fetchRawData() {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await fetchFunction();
-        setData(result);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err : new Error("An unknown error occured"),
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [fetchFunction],
-  );
+  async function fetchData() {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await fetchFunction();
+      setData(result);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err : new Error("An unknown error occured"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
   function reset() {
     setLoading(false);
     setData(null);

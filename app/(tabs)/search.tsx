@@ -28,19 +28,6 @@ const Search = () => {
   };
 
   useEffect(() => {
-    //   // create timeoutID
-    const timeoutId = setTimeout(async () => {
-      //     // check if user is searching
-      if (searchQuery.trim()) {
-        //       // call loadShows
-        await loadShows();
-        // reset if not
-      } else reset();
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
-
-  useEffect(() => {
     if (shows?.length! > 0) {
       updateSearchCount(searchQuery, shows![0]);
     }
