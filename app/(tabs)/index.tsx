@@ -26,7 +26,7 @@ export default function Index() {
   } = useFetch(() => fetchShows());
 
   const { data: trendingShows, refetch: refetchTrending } = useFetch(
-    () => getTrendingShows(),
+    useCallback(() => getTrendingShows(), []),
   );
 
   // Refetch trending shows mỗi khi Home screen lấy focus (user quay lại từ Search)
