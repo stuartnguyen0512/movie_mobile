@@ -25,58 +25,13 @@ const ShowInfo = ({ label, value }: ShowInfoProps) => (
     </Text>
   </View>
 );
-// ────────────────────────────────────────────────────────────
-// TODO 1: Import những gì cần dùng
-//   - useLocalSearchParams từ "expo-router" (đọc param "id" từ URL)
-//   - useFetch từ "@/services/useFetch"
-//   - fetchShowDetails từ "@/services/api"
-// ────────────────────────────────────────────────────────────
 const ShowDetails = () => {
-  // ────────────────────────────────────────────────────────────
-  // TODO 2: Lấy "id" từ URL bằng useLocalSearchParams
-  //
-  // Route file này tên là "[id].tsx" nên Expo Router sẽ tự parse
-  // segment đó thành param "id". Ví dụ path "/shows/123" -> id = "123".
-  //
   const { id } = useLocalSearchParams();
-  //
-  // Lưu ý: id có kiểu string | string[] theo type của Expo Router,
-  // nhưng thực tế với route này luôn là string đơn — có thể ép kiểu
-  // "as string" khi truyền cho fetchShowDetails.
-  // ────────────────────────────────────────────────────────────
-
-  // ────────────────────────────────────────────────────────────
-  // TODO 3: Gọi useFetch để lấy chi tiết show
-  //
   const {
     data: shows,
     loading,
     error,
   } = useFetch(() => fetchShowDetails(id as string));
-  //
-  // Vì sao phải bọc trong () => fetchShowDetails(...) thay vì
-  // truyền thẳng fetchShowDetails? Nhớ lại chữ ký của useFetch:
-  //   fetchFunction: () => Promise<T>
-  // fetchShowDetails cần tham số id, nhưng useFetch chỉ gọi
-  // fetchFunction() KHÔNG có tham số -> phải bọc thành 1 hàm
-  // "không tham số" (arrow function) để giữ id bên trong closure.
-  // ────────────────────────────────────────────────────────────
-
-  // ────────────────────────────────────────────────────────────
-  // TODO 4: Render theo 3 trạng thái, giống pattern đã dùng ở
-  // Home/Search screen:
-  //   - loading === true  -> hiển thị ActivityIndicator
-  //   - error !== null    -> hiển thị Text báo lỗi
-  //   - còn lại (có data)  -> render thông tin show:
-  //       + show.image?.original (hoặc medium) bằng <Image>
-  //       + show.name
-  //       + show.rating?.average
-  //       + show.summary (chú ý: chuỗi HTML thô từ TVmaze, có
-  //         thể có thẻ <p>, <b>... tạm thời render text thô,
-  //         nói mình biết nếu muốn xử lý strip HTML sau)
-  //       + show.genres?.join(", ")
-  //       + show.premiered
-  // ────────────────────────────────────────────────────────────
   if (loading)
     return (
       <SafeAreaView className="bg-primary flex-1">
