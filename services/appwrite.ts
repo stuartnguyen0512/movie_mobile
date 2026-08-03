@@ -4,6 +4,8 @@ const APPWRITE_ENDPOINT = process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT;
 const PROJECT_ID = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
 const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID;
 const COLLECTION_ID = process.env.EXPO_PUBLIC_APPWRITE_COLLECTION_ID;
+const COLLECTION_ID_SAVED_SHOW =
+  process.env.EXPO_PUBLIC_APPWRITE_SAVED_COLLECTION_ID;
 
 if (!PROJECT_ID || !APPWRITE_ENDPOINT || !DATABASE_ID || !COLLECTION_ID) {
   throw new Error("Missing Appwrite env vars — check your .env file");
@@ -51,5 +53,56 @@ export const getTrendingShows = async (): Promise<
   } catch (err) {
     console.log({ err });
     return undefined;
+  }
+};
+
+export const isShowSaved = async (showId: number) => {
+  try {
+    const existingShow = await database.listDocuments(
+      DATABASE_ID,
+      COLLECTION_ID_SAVED_SHOW,
+      [Query.equal("show_id", showId)],
+    );
+    if (existingShow.documents.length > 0) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (err) {
+    console.log({ err });
+  }
+};
+
+export const toggleSavedShow = async (show: Show) => {
+  try {
+    const existingShow = await database.listDocuments(
+      DATABASE_ID,
+      COLLECTION_ID_SAVED_SHOW,
+      [Query.equal("show_id", show.id)],
+    );
+
+    if (existingShow.documents.length > 0) {
+      const existingShowId = existingShow.documents[0].$id;
+      database.deleteDocument(
+        DATABASE_ID,
+        COLLECTION_ID_SAVED_SHOW,
+        existingShowId,
+      );
+    } else {
+      database.createDocument(
+        DATABASE_ID,
+        COLLECTION_ID_SAVED_SHOW,
+        ID.unique(),
+        {
+          title: show.name,
+          poster_url: show.image?.medium ?? "",
+          show_id: show.id,
+          rating: show.rating.average,
+          premiered: show.premiered,
+        },
+      );
+    }
+  } catch (err) {
+    console.log({ err });
   }
 };
