@@ -212,3 +212,49 @@
 - TrendingCard nhận TrendingCardProps (gói — chỉ 2 field show và index, trong đó show chứa nguyên object TrendingShow lồng bên trong) → không spread trực tiếp {...item} được, vì shape props không khớp 1-1 với item; phải gọi tường minh <TrendingCard show={item} index={index} />.
 - Lý do gốc rễ không chỉ vì "có thêm field index" — là vì 2 component chọn 2 kiểu thiết kế props khác nhau. Nếu muốn spread được kể cả khi có thêm field ngoài, cần đổi props sang kiểu phẳng và dùng intersection type (TrendingShow & { index: number }) — & nghĩa là "1 object phải thỏa mãn ĐỒNG THỜI cả 2 type cộng lại", khác với union | ("1 trong 2 type").
 - Trong thực tế, cách viết tường minh (show={item} index={index}) thường dễ đọc hơn cách cố "làm phẳng" rồi spread — nhất là khi props có ý nghĩa nhóm rõ ràng (1 object show + 1 số index riêng biệt, không phải cùng 1 "loại" dữ liệu).
+
+## 2026-08-01 — 2026-08-03: Bug-injection ôn tập diện rộng (4 vòng, 12+ bug) + tính năng Save Show
+
+### 1. Ôn tập diện rộng qua bug-injection có chủ đích (4 vòng)
+
+- 4 vòng bug tách theo chủ đề: (1) data fetching & hooks (useCallback memoization, debounce, response shape mapping), (2) rendering/list patterns (ListEmptyComponent, render prop tabBarIcon, xử lý null trong ShowCard), (3) component composition & data-shape (flat vs wrapped props, spread operator), (4) navigation/routing (useFocusEffect refetch, route name mismatch, useLocalSearchParams).
+- Bug thật phát sinh ngoài kế hoạch (không do cố ý cài) vẫn có thể lộ ra giữa lúc ôn tập: lỗi "Encountered two children with the same key" trong FlatList trending — do dùng show_id (không unique tuyệt đối, vì cùng 1 show có thể được search bằng nhiều từ khóa khác nhau, tạo nhiều document) làm keyExtractor thay vì $id (ID document Appwrite tự sinh, luôn unique tuyệt đối).
+- Một số bug chỉ báo lỗi TypeScript ngay lúc chạy type check (VD field mismatch giữa các file, kiểu tham số sai — bug ở Vòng 3, 4), một số bug khác hoàn toàn "im lặng" với TypeScript và chỉ lộ ra khi test runtime thủ công (VD thiếu debounce, quên useCallback, mất useFocusEffect — bug ở Vòng 1, 2). Bài học: kiểm tra type là cần thiết nhưng không đủ, luôn phải kết hợp test tay trên app thật.
+
+### 2. Optional chaining chỉ ngăn crash, không tự tạo fallback UX
+
+- Truy cập field lồng bằng optional chaining khi giá trị gốc là null sẽ trả về undefined — React tự hiểu render undefined là "không render gì", nghĩa là không crash app, nhưng để lại 1 khoảng trống vô nghĩa trên UI (không phải "N/A" hay placeholder có nghĩa).
+- Muốn có UX tốt hơn (hiện chữ có ý nghĩa khi giá trị null), cần thêm tầng xử lý thứ 2: nullish coalescing hoặc logical OR để có giá trị mặc định hợp lý. Đây là 2 quyết định tách biệt: "ngăn crash" và "tạo fallback có ý nghĩa".
+
+### 3. Async wrapper pattern trong useEffect — tên gọi và lý do tồn tại
+
+- React quy định callback truyền vào useEffect không được là async trực tiếp — vì async function luôn tự động trả về Promise, vi phạm quy tắc "effect callback chỉ được trả về undefined hoặc 1 cleanup function".
+- Giải pháp chuẩn (khuyến nghị bởi chính React docs): định nghĩa 1 async function riêng bên trong effect, rồi gọi nó ngay lập tức — gọi là "async function wrapper" pattern.
+- Debounce (đã học buổi trước) và async wrapper là 2 pattern độc lập, có thể chồng lên nhau: debounce lo phần "trì hoãn gọi", async wrapper lo phần "được phép gọi async bên trong effect". Màn Search cần cả 2 (vì phải trì hoãn + phải gọi API async); màn ShowDetails chỉ cần async wrapper (không cần trì hoãn vì không có sự kiện dồn dập).
+- Cấu trúc đầy đủ khi cần cả 2 tầng: effect ngoài cùng bọc setTimeout (tầng debounce delay) bọc 1 async function tự gọi (tầng async wrapper) — cleanup (clearTimeout) luôn return ra ở tầng effect ngoài cùng, không phải return ra khỏi callback bên trong setTimeout.
+
+### 4. Hook Rules — vì sao thứ tự đặt Hook trong component quan trọng tuyệt đối
+
+- React yêu cầu mọi Hook phải được gọi theo đúng số lượng và đúng thứ tự ở mọi lần render — không được đặt sau bất kỳ điều kiện return nào.
+- Hệ quả thực tế khi vi phạm: lần render đầu (VD đang loading, hàm return sớm trước khi chạy tới Hook) → Hook đó không được gọi; lần render sau (data đã về, không còn return sớm) → Hook đó được gọi. Số Hook gọi được lệch nhau giữa 2 lần render → React throw lỗi runtime "Rendered more/fewer hooks than during the previous render", không phải lỗi kiểu dữ liệu nên type check không bắt được.
+- Thứ tự đúng bắt buộc: khai báo toàn bộ Hook trước, rồi mới tới các early-return có điều kiện (loading, error, thiếu data).
+
+### 5. Kịch bản đọc lỗi kiểu dữ liệu lặp lại được (khi gặp thông báo "Type X is not assignable to type Y")
+
+- Bước 1: đọc đúng dòng/cột trình biên dịch chỉ ra, mở đúng vị trí đó, không đọc lướt cả file.
+- Bước 2: xác định rõ 2 vế trong thông báo lỗi — X là giá trị đang có/đang truyền vào, Y là kiểu nơi nhận mong đợi.
+- Bước 3: tự hỏi X đến từ đâu (hàm nào trả về, biến nào khai báo) và Y được khai ở đâu (interface, tham số hàm, khai báo state).
+- Bước 4: chọn sửa ở 1 trong 2 nơi — hoặc đổi giá trị truyền vào cho khớp Y, hoặc mở rộng Y cho khớp X thực tế — không phải lúc nào "cho phép null" cũng là hướng đúng, cần xem Y có ý nghĩa thực sự là gì.
+- Ví dụ thực tế đã gặp: lỗi kiểu Promise không gán được cho SetStateAction boolean → do quên await trước khi gọi setState, không phải do thiếu xử lý null trong kiểu dữ liệu.
+
+### 6. Existence-based pattern cho tính năng "Save/Unsave" (khác Trending upsert)
+
+- 2 pattern khác nhau cho 2 nhu cầu khác nhau: Upsert (update nếu có, tạo mới nếu chưa — dùng khi cần tích lũy dữ liệu, VD tăng count mỗi lần search cùng từ khóa) vs Existence-based toggle (document tồn tại = trạng thái "on", xóa hẳn document = trạng thái "off" — dùng khi hành động là bật/tắt 2 chiều, VD Save/Unsave).
+- Cân nhắc khi chọn boolean flag (giữ document mãi mãi, chỉ đổi giá trị field) so với existence-based (xóa hẳn khi tắt): boolean flag giữ được lịch sử "từng bật rồi tắt" nhưng tích lũy rác theo thời gian; existence-based gọn hơn, không cần field thừa, nhưng mất lịch sử đó.
+- Field dùng để lọc tồn tại nên có kiểu khớp đúng với dữ liệu gốc (number, giống field id từ TVmaze) — khai sai kiểu tham số hàm (string thay vì number) không bị type check bắt lỗi ngay nếu hàm đó chưa được gọi ở đâu cả, chỉ lộ ra khi thực sự có nơi gọi truyền giá trị thật vào.
+
+### 7. Optimistic update — đánh đổi UX nhanh vs độ chính xác UI
+
+- Optimistic update: đổi UI ngay lập tức (tin tưởng request sẽ thành công) trước khi đợi kết quả thật từ server — ưu điểm là UI phản hồi tức thì, cảm giác mượt.
+- Rủi ro: nếu request thất bại (mất mạng, lỗi server), UI đã đổi trạng thái trước đó có thể "nói dối", không còn khớp với dữ liệu thật trên server.
+- Lựa chọn thay thế an toàn hơn (đã áp dụng cho nút Save): đợi request xong rồi mới cập nhật state UI — đảm bảo UI luôn khớp thật, đổi lại phản hồi chậm hơn 1 chút (thời gian round-trip tới Appwrite).
