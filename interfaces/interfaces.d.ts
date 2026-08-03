@@ -54,6 +54,15 @@ interface TrendingCardProps {
   index: number;
 }
 
+interface SavedShow {
+  $id: string;
+  show_id: number;
+  title: string;
+  poster_url: string;
+  rating: number | null;
+  premiered: string | null;
+}
+
 // TVmaze's /shows/:id endpoint returns the same shape as the show index,
 // so ShowDetails and Show are structurally identical for now.
 type ShowDetails = Show;
