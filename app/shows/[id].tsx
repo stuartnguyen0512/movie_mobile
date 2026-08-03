@@ -26,12 +26,12 @@ const ShowInfo = ({ label, value }: ShowInfoProps) => (
   </View>
 );
 const ShowDetails = () => {
-  const { id } = useLocalSearchParams();
+  const params = useLocalSearchParams();
   const {
     data: shows,
     loading,
     error,
-  } = useFetch(() => fetchShowDetails(id as string));
+  } = useFetch(() => fetchShowDetails(params as string));
   if (loading)
     return (
       <SafeAreaView className="bg-primary flex-1">
