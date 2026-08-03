@@ -68,13 +68,13 @@ const ShowCard = ({ id, image, name, rating, premiered }: Show) => {
         <View className="flex-row items-center justify-start gap-x-1">
           <Image source={icons.star} className="size-4" />
           <Text className="text-xs text-white font-bold uppercase">
-            {Math.round((rating.average ?? 0) / 2)}
+            {Math.round(rating.average / 2)}
           </Text>
         </View>
         {/* Release Date */}
         <View className="flex-row items-center justify-between">
           <Text className="text-xs text-light-300 font-medium mt-1">
-            {premiered?.split("-")[0]}
+            {premiered.split("-")[0]}
           </Text>
           <Text className="text-xs font-medium text-light-300 uppercase">
             Show

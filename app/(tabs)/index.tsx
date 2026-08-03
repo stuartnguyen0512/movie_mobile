@@ -29,7 +29,6 @@ export default function Index() {
     useCallback(() => getTrendingShows(), []),
   );
 
-  // Refetch trending shows mỗi khi Home screen lấy focus (user quay lại từ Search)
   useFocusEffect(
     useCallback(() => {
       refetchTrending();
@@ -68,7 +67,7 @@ export default function Index() {
                   </Text>
                   <FlatList
                     data={trendingShows}
-                    keyExtractor={(item) => item.show_id.toString()}
+                    keyExtractor={(item) => item.$id.toString()}
                     horizontal={true}
                     showsHorizontalScrollIndicator={false}
                     ItemSeparatorComponent={() => <View className="w-4" />}

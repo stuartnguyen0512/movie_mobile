@@ -1,7 +1,3 @@
-// ────────────────────────────────────────────────────────────
-// TODO 1: Khai báo base URL của TVmaze
-// https://api.tvmaze.com
-// ────────────────────────────────────────────────────────────
 const BASE_URL = "https://api.tvmaze.com";
 
 // ────────────────────────────────────────────────────────────
@@ -49,7 +45,10 @@ export async function fetchShows({ query }: { query?: string } = {}): Promise<
   }
 
   const data = await response.json();
-
+  if (query) {
+    const results = data.map((item: any) => item.show);
+    return results.slice(0, 20);
+  }
   return data.slice(0, 20);
 }
 

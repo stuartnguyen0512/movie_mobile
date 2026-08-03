@@ -28,6 +28,17 @@ const Search = () => {
   };
 
   useEffect(() => {
+    const timeOutId = setTimeout(async () => {
+      if (searchQuery.trim()) {
+        await loadShows();
+      } else {
+        reset();
+      }
+    }, 500);
+    return () => clearTimeout(timeOutId);
+  }, [searchQuery]);
+
+  useEffect(() => {
     if (shows?.length! > 0) {
       updateSearchCount(searchQuery, shows![0]);
     }
@@ -88,17 +99,6 @@ const Search = () => {
               </Text>
             )}
           </>
-        }
-        ListEmptyComponent={
-          !loading && !error ? (
-            <View className="mt-10 px-5">
-              <Text className="text-center text-gray-500">
-                {searchQuery.trim()
-                  ? "No shows found"
-                  : "Start typing to search for shows"}
-              </Text>
-            </View>
-          ) : null
         }
       />
     </View>
