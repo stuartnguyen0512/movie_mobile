@@ -86,9 +86,7 @@ export default function Index() {
                 keyExtractor={(item) => item.id.toString()}
                 numColumns={3}
                 scrollEnabled={false}
-                renderItem={({ item }) => (
-                  <ShowCard image={item.image} name={item.name} />
-                )}
+                renderItem={({ item }) => <ShowCard {...item} />}
                 columnWrapperStyle={{
                   justifyContent: "flex-start",
                   gap: 20,
