@@ -15,6 +15,8 @@ import { fetchShows } from "@/services/api";
 import ShowCard from "@/components/ShowCard";
 import TrendingCard from "@/components/TrendingCard";
 import { getTrendingShows } from "@/services/appwrite";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 
 export default function Index() {
   const router = useRouter();
@@ -24,8 +26,14 @@ export default function Index() {
     error: showsError,
   } = useFetch(() => fetchShows());
 
-  const { data: trendingShows, refetch: refetchTrending } = useFetch(() =>
-    getTrendingShows(),
+  const { data: trendingShows, refetch: refetchTrending } = useFetch(
+    useCallback(() => getTrendingShows(), []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchTrending();
+    }, [refetchTrending]),
   );
 
   return (
