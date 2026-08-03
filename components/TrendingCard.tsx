@@ -4,7 +4,9 @@ import { Text, Image, TouchableOpacity, View } from "react-native";
 import { images } from "@/constants/images";
 
 const TrendingCard = ({
-  show: { show_id, title, poster_url },
+  show_id,
+  title,
+  poster_url,
   index,
 }: TrendingCardProps) => {
   return (

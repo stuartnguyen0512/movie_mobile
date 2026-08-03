@@ -130,10 +130,6 @@ const ShowDetails = () => {
           </View>
 
           <ShowInfo label="Overview" value={shows?.summary} />
-          <ShowInfo
-            label="Genres"
-            value={shows?.genres?.map((g) => g).join(" • ") || "N/A"}
-          />
 
           <View className="flex flex-row justify-between w-1/2">
             {/* <ShowInfo */}
