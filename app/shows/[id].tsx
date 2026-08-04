@@ -37,15 +37,6 @@ const ShowDetails = () => {
     error,
   } = useFetch(() => fetchShowDetails(id as string));
 
-  useEffect(() => {
-    if (!show) return;
-    const checkSaved = async () => {
-      const result = await isShowSaved(show.id);
-      setIsSaved(result ?? false);
-    };
-    checkSaved();
-  }, [show]);
-
   if (loading)
     return (
       <SafeAreaView className="bg-primary flex-1">
@@ -61,6 +52,15 @@ const ShowDetails = () => {
     );
 
   if (!show) return null;
+
+  useEffect(() => {
+    if (!show) return;
+    const checkSaved = async () => {
+      const result = await isShowSaved(show.id);
+      setIsSaved(result ?? false);
+    };
+    checkSaved();
+  }, [show]);
 
   return (
     <View className="bg-primary flex-1">

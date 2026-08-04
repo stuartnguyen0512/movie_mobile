@@ -42,10 +42,10 @@ const Search = () => {
   }, [searchQuery]);
 
   useEffect(() => {
-    if (shows?.length! > 0) {
-      updateSearchCount(searchQuery, shows![0]);
+    if (searchQuery.trim()) {
+      updateSearchCount(searchQuery, shows[0]);
     }
-  }, [shows]);
+  }, [searchQuery]);
 
   return (
     <View className="flex-1 bg-primary">
