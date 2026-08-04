@@ -16,12 +16,14 @@ const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const {
-    data: shows = [],
+    data: rawShows,
     loading,
     error,
     refetch: loadShows,
     reset,
   } = useFetch(() => fetchShows({ query: searchQuery }), false);
+
+  const show = rawShows ?? [];
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -42,10 +44,10 @@ const Search = () => {
   }, [searchQuery]);
 
   useEffect(() => {
-    if (searchQuery.trim()) {
-      updateSearchCount(searchQuery, shows[0]);
+    if (show.length > 0) {
+      updateSearchCount(searchQuery, show[0]);
     }
-  }, [searchQuery]);
+  }, [show]);
 
   return (
     <View className="flex-1 bg-primary">
@@ -56,7 +58,7 @@ const Search = () => {
       />
       <FlatList
         className="px-5"
-        data={shows}
+        data={show}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <ShowCard {...item} />}
         numColumns={3}
@@ -95,7 +97,7 @@ const Search = () => {
               </Text>
             )}
             {/* Show current searchQuery */}
-            {!loading && !error && searchQuery.trim() && shows?.length! > 0 && (
+            {!loading && !error && searchQuery.trim() && show?.length! > 0 && (
               <Text className="text-xl text-white font-bold">
                 Search Results for{" "}
                 <Text className="text-accent">{searchQuery}</Text>

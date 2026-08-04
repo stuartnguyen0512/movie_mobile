@@ -61,7 +61,7 @@ export const isShowSaved = async (showId: number) => {
     const existingShow = await database.listDocuments(
       DATABASE_ID,
       COLLECTION_ID_SAVED_SHOW,
-      [Query.equal("id", showId)],
+      [Query.equal("show_id", showId)],
     );
     if (existingShow.documents.length > 0) {
       return true;
@@ -75,13 +75,32 @@ export const isShowSaved = async (showId: number) => {
 
 export const toggleSavedShow = async (show: Show) => {
   try {
-    database.createDocument(DATABASE_ID, COLLECTION_ID_SAVED_SHOW, ID.unique(), {
-      title: show.name,
-      poster_url: show.image?.medium ?? "",
-      show_id: show.id,
-      rating: show.rating.average,
-      premiered: show.premiered,
-    });
+    const existingShow = await database.listDocuments(
+      DATABASE_ID,
+      COLLECTION_ID_SAVED_SHOW,
+      [Query.equal("show_id", show.id)],
+    );
+
+    if (existingShow.documents.length > 0) {
+      database.deleteDocument(
+        DATABASE_ID,
+        COLLECTION_ID_SAVED_SHOW,
+        existingShow.documents[0].$id,
+      );
+    } else {
+      database.createDocument(
+        DATABASE_ID,
+        COLLECTION_ID_SAVED_SHOW,
+        ID.unique(),
+        {
+          title: show.name,
+          poster_url: show.image?.medium ?? "",
+          show_id: show.id,
+          rating: show.rating.average,
+          premiered: show.premiered,
+        },
+      );
+    }
   } catch (err) {
     console.log({ err });
   }
