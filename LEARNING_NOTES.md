@@ -258,3 +258,32 @@
 - Optimistic update: đổi UI ngay lập tức (tin tưởng request sẽ thành công) trước khi đợi kết quả thật từ server — ưu điểm là UI phản hồi tức thì, cảm giác mượt.
 - Rủi ro: nếu request thất bại (mất mạng, lỗi server), UI đã đổi trạng thái trước đó có thể "nói dối", không còn khớp với dữ liệu thật trên server.
 - Lựa chọn thay thế an toàn hơn (đã áp dụng cho nút Save): đợi request xong rồi mới cập nhật state UI — đảm bảo UI luôn khớp thật, đổi lại phản hồi chậm hơn 1 chút (thời gian round-trip tới Appwrite).
+
+## 2026-08-04 — 2026-08-05: Ôn tập bug-injection thêm 1 vòng + hoàn thiện tính năng Saved Shows
+
+### 1. "Không crash" không có nghĩa là "không có bug"
+
+- Bug-injection thêm 1 vòng (4 bug) cho thấy rõ: nhiều bug không hề làm app crash, chỉ âm thầm làm sai chức năng — VD query field sai tên khiến hàm luôn trả về false/rỗng (Appwrite không throw lỗi khi field không khớp, chỉ đơn giản không tìm thấy document nào), hoặc thiếu logic toggle khiến hành động chỉ chạy 1 chiều (luôn tạo mới, không bao giờ xóa).
+- Một số bug chỉ lộ ra khi test đúng kịch bản cụ thể (VD mở lại 1 show đã từng lưu để soi màu icon, bấm cùng 1 nút 2 lần liên tiếp rồi kiểm tra dữ liệu thật trên Appwrite Console) — không phải cứ mở app lên chạy bình thường là đủ để phát hiện.
+- Bug "Hook Rules vi phạm" (đặt useEffect sau early-return) là dạng tinh vi nhất: chỉ crash khi số lượng Hook thực sự lệch nhau giữa 2 lần render liên tiếp theo đúng luồng cụ thể — không phải lúc nào vi phạm cũng lập tức crash rõ ràng, nên không thể chỉ dựa vào "app có crash hay không" để kết luận code đúng.
+
+### 2. Sai lầm thường gặp khi cố xử lý "possibly null" — dùng `?? null`
+
+- `giá_trị ?? null` **không giải quyết được gì cả** — nếu giá trị gốc đã là null, biểu thức trả về null (vì null ?? null = null); nếu giá trị gốc không phải null, biểu thức trả về chính giá trị đó không đổi. Kiểu dữ liệu sau phép này giữ nguyên y hệt ban đầu, TypeScript vẫn báo lỗi possibly null y như trước khi thêm `?? null`.
+- Bài học: vế phải của `??` phải là 1 giá trị **thay thế thực sự khác `null`/`undefined`** (mảng rỗng, số 0, chuỗi rỗng...) thì mới có tác dụng thu hẹp kiểu dữ liệu và hết cảnh báo.
+- Quy tắc phân loại nhanh: giá trị dùng để xử lý tiếp (truyền cho hàm khác, tính toán) → dùng `??` với fallback có nghĩa; giá trị chỉ để render UI, không xử lý gì thêm → optional chaining là đủ; chắc chắn 100% không thể null tại điểm đó (nhờ guard `if (!x) return` phía trước) → để TypeScript tự narrow kiểu, không cần thêm gì; trường hợp hiếm cần "nói dối" compiler → non-null assertion, nhưng không sinh code runtime nên không thay đổi hành vi thực tế nếu đoán sai.
+
+### 3. Tái sử dụng component (`ShowCard`) vs viết component riêng (`SavedShowCard`) — quyết định dựa trên shape dữ liệu
+
+- Khi 2 nguồn dữ liệu biểu diễn cùng 1 khái niệm ("hiển thị 1 show") nhưng có shape khác nhau (field lồng vs field phẳng, tên field khác nhau: `id` vs `show_id`, `image.medium` vs `poster_url` string thẳng, `rating.average` vs `rating` number thẳng), ép dữ liệu vào component đã có sẵn (viết code convert tại nơi gọi) vi phạm nguyên tắc "sửa tại định nghĩa" đã học — nên viết component mới khớp đúng shape thay vì convert.
+- Đây là ứng dụng thực tế của bài học cũ "Props phẳng (flat) vs gói (wrapped)" — quyết định viết component riêng hay tái dùng phải dựa trên đối chiếu cụ thể từng field của 2 interface, không chỉ dựa cảm tính "trông giống nhau".
+
+### 4. `FlatList` lồng trong chính `ListHeaderComponent` của nó — biến thể mới của lỗi nested VirtualizedList
+
+- Khác với lỗi nested list đã học trước đây (ScrollView bọc FlatList khác hướng cuộn), lần này là lỗi cấu trúc: vô tình đặt 1 FlatList thứ 2 (render cùng data, cùng cấu hình) bên trong ListHeaderComponent của chính FlatList đó — thường xảy ra khi copy pattern từ 1 màn hình có nhiều section khác nhau (Home: trending + latest, 2 FlatList khác nhau) sang 1 màn hình chỉ có 1 danh sách duy nhất (Saved) mà quên rằng ở đây không cần list thứ 2.
+- Cách phát hiện: so sánh cấu trúc JSX với mục đích thực tế của màn hình — nếu chỉ có 1 loại dữ liệu cần hiển thị dạng lưới/danh sách, không nên có 2 FlatList cùng lúc dù nằm ở vị trí lồng nhau nào.
+
+### 5. `useFetch(fn, false)` chỉ cần thiết khi có lý do trì hoãn fetch — không phải mặc định luôn dùng
+
+- Tham số `autoFetch = false` tồn tại cho trường hợp cụ thể: cần đợi 1 điều kiện/hành động khác trước khi fetch (VD Search screen: đợi user gõ, không muốn tự fetch toàn bộ show ngay lúc mount màn hình rỗng).
+- Nếu màn hình chỉ đơn giản cần load dữ liệu ngay khi mở lên (VD Saved screen: hiển thị toàn bộ danh sách đã lưu ngay), dùng `autoFetch = true` (mặc định, bỏ tham số thứ 2) sẽ gọn hơn nhiều so với việc tắt `autoFetch` rồi tự viết thêm `useEffect` + gọi `refetch()` thủ công để đạt được hiệu quả tương đương — thêm code không cần thiết nếu không có lý do trì hoãn thực sự.
