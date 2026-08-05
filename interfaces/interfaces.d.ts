@@ -41,7 +41,7 @@ interface Show {
 }
 
 interface TrendingShow {
-  $id;
+  $id: string;
   searchTerm: string;
   show_id: number;
   title: string;
