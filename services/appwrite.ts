@@ -105,3 +105,11 @@ export const toggleSavedShow = async (show: Show) => {
     console.log({ err });
   }
 };
+
+export const getSavedShows = async () => {
+  const savedShowDocuments = await database.listDocuments(
+    DATABASE_ID,
+    COLLECTION_ID_SAVED_SHOW,
+  );
+  return savedShowDocuments.documents as unknown as SavedShow[];
+};
