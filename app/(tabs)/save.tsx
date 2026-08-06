@@ -20,8 +20,8 @@ const Save = () => {
 
   useFocusEffect(
     useCallback(() => {
-      refetchSavedShows();
-    }, [refetchSavedShows]),
+      getSavedShows();
+    }, [getSavedShows]),
   );
 
   return (

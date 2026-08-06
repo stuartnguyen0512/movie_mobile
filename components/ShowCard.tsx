@@ -5,7 +5,7 @@ import { icons } from "@/constants/icons";
 
 const ShowCard = ({ id, image, name, rating, premiered }: Show) => {
   return (
-    <Link href={`/shows/${id}`} asChild>
+    <Link href={`/shows/`} asChild>
       <TouchableOpacity className="w-[30%]">
         {/* Show Post */}
         <Image

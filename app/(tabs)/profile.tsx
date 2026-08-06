@@ -35,7 +35,7 @@ const Profile = () => {
       return acc;
     }, 0);
 
-    const avgRating = totalRating / count;
+    const avgRating = totalRating / totalSaved;
 
     return Math.round(avgRating * 10) / 10;
   };
