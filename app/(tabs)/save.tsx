@@ -6,7 +6,7 @@ import { icons } from "@/constants/icons";
 import SavedShowCard from "@/components/SavedShowCard";
 import useFetch from "@/services/useFetch";
 import { getSavedShows } from "@/services/appwrite";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 
 const Save = () => {
@@ -20,8 +20,8 @@ const Save = () => {
 
   useFocusEffect(
     useCallback(() => {
-      getSavedShows();
-    }, [getSavedShows]),
+      refetchSavedShows();
+    }, [refetchSavedShows]),
   );
 
   return (

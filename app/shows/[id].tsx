@@ -41,7 +41,7 @@ const ShowDetails = () => {
     if (!show) return;
     const checkSaved = async () => {
       const result = await isShowSaved(show.id);
-      setIsSaved(result);
+      setIsSaved(result ?? false);
     };
     checkSaved();
   }, [show]);

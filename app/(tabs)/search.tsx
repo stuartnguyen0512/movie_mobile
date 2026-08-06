@@ -30,14 +30,18 @@ const Search = () => {
   };
 
   useEffect(() => {
-    const loadShowsInstance = async () => {
-      if (searchQuery.trim()) {
-        await loadShows();
-      } else {
-        reset();
-      }
-    };
-    loadShowsInstance();
+    const timerOutId = setTimeout(() => {
+      const loadShowsInstance = async () => {
+        if (searchQuery.trim()) {
+          await loadShows();
+        } else {
+          reset();
+        }
+      };
+      loadShowsInstance();
+    }, 500);
+
+    return () => clearTimeout(timerOutId);
   }, [searchQuery]);
 
   useEffect(() => {
