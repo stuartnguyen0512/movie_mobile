@@ -95,7 +95,6 @@ export const toggleSavedShow = async (show: Show) => {
         {
           title: show.name,
           poster_url: show.image?.medium ?? "",
-          show_id: show.id,
           rating: show.rating.average,
           premiered: show.premiered,
         },

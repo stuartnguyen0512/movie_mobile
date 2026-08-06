@@ -61,7 +61,7 @@ export default function Index() {
               placeholder="Search for a show"
             />
             <>
-              {trendingShows && trendingShows.length > 0 && (
+              {trendingShows || trendingShows.length > 0 && (
                 <View className="mt-10">
                   <Text className="text-lg text-white font-bold mb-3">
                     Trending Shows

@@ -47,9 +47,9 @@ export async function fetchShows({ query }: { query?: string } = {}): Promise<
   const data = await response.json();
   if (query) {
     const results = data.map((item: any) => item.show);
-    return results.slice(0, 20);
+    return results;
   }
-  return data.slice(0, 20);
+  return data;
 }
 
 // ────────────────────────────────────────────────────────────
