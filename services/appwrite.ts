@@ -98,6 +98,7 @@ export const toggleSavedShow = async (show: Show) => {
           poster_url: show.image?.medium ?? "",
           rating: show.rating.average,
           premiered: show.premiered,
+          genres: show.genres,
         },
       );
     }
