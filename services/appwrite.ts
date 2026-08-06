@@ -93,6 +93,7 @@ export const toggleSavedShow = async (show: Show) => {
         COLLECTION_ID_SAVED_SHOW,
         ID.unique(),
         {
+          show_id: show.id,
           title: show.name,
           poster_url: show.image?.medium ?? "",
           rating: show.rating.average,

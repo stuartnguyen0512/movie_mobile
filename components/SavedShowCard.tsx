@@ -25,7 +25,7 @@ const SavedShowCard = ({
           resizeMode="cover"
           source={{
             // TODO: dùng field poster_url, fallback placeholder giống ShowCard
-            uri: poster_url,
+            uri: poster_url ?? "https://placehold.co/600x400/1a1a1a/FFFFFF.png",
           }}
         />
         {/* Title */}
