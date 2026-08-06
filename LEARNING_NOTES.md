@@ -287,3 +287,47 @@
 
 - Tham số `autoFetch = false` tồn tại cho trường hợp cụ thể: cần đợi 1 điều kiện/hành động khác trước khi fetch (VD Search screen: đợi user gõ, không muốn tự fetch toàn bộ show ngay lúc mount màn hình rỗng).
 - Nếu màn hình chỉ đơn giản cần load dữ liệu ngay khi mở lên (VD Saved screen: hiển thị toàn bộ danh sách đã lưu ngay), dùng `autoFetch = true` (mặc định, bỏ tham số thứ 2) sẽ gọn hơn nhiều so với việc tắt `autoFetch` rồi tự viết thêm `useEffect` + gọi `refetch()` thủ công để đạt được hiệu quả tương đương — thêm code không cần thiết nếu không có lý do trì hoãn thực sự.
+
+## 2026-08-06: useFocusEffect sâu, xây Profile screen (stats từ Saved Shows), ôn cuối buổi
+
+### 1. useFocusEffect vs useEffect — khác nhau ở sự kiện lắng nghe
+
+- useEffect chỉ biết 2 sự kiện: component vừa sinh ra lần đầu, và component vừa bị hủy hẳn. Khi chuyển tab qua lại, component của tab cũ KHÔNG bị hủy, chỉ tạm "mất focus" — nên useEffect không hề hay biết chuyện chuyển tab.
+- useFocusEffect (từ expo-router) là hook riêng, chỉ lắng nghe đúng 1 sự kiện: "màn hình vừa được focus lại" (user quay về tab đó) — dù component chưa từng bị hủy đi.
+- Dùng khi: dữ liệu ở màn A có thể bị thay đổi bởi hành động ở màn B, và muốn A tự cập nhật ngay khi quay lại, không cần user tự kéo-để-refresh.
+
+### 2. Quy tắc gốc duy nhất quyết định khi nào cần useCallback (không phải nhiều quy tắc rời rạc)
+
+- Chỉ 1 quy tắc: cần useCallback khi kết quả của nó (chính function đó, hoặc refetch phái sinh từ nó) bị 1 hook khác đưa vào dependency array để "đứng canh" so sánh giữa các lần render.
+- Nếu function chỉ dùng nội bộ 1 lần (VD trong useEffect dependency rỗng, chạy đúng 1 lần lúc mount), không ai so sánh lại ở lần sau → không cần useCallback.
+- Sự "cần thiết" có thể lan truyền qua nhiều tầng hook lồng nhau: fetchFunction bị canh bởi useCallback bên trong chính useFetch.ts (không phải bởi useEffect bên trong đó) → kết quả refetch phái sinh lại tiếp tục bị canh bởi useFocusEffect ở nơi gọi ngoài cùng — phải theo dõi toàn bộ chuỗi, không chỉ nhìn 1 hook riêng lẻ.
+- Import 1 hàm trực tiếp từ module khác (không phải tạo ra bên trong component) không bao giờ cần useCallback cho chính nó, vì nó chỉ được định nghĩa 1 lần ở module-level, không bao giờ đổi địa chỉ bộ nhớ giữa các lần render.
+
+### 3. Trong useFocusEffect, phải gọi refetch (từ useFetch), không gọi thẳng hàm service gốc
+
+- Hàm service gốc (VD getSavedShows()) chỉ đơn thuần trả về data mới, không tự động cập nhật state của component — gọi nó rồi không gán vào đâu cả nghĩa là data mới bị "vứt đi ngay lập tức".
+- refetch là hàm đặc biệt lấy từ kết quả useFetch — bên trong nó tự động setData(...), đây mới là hàm thực sự khiến UI cập nhật lại.
+- Bug thực tế lặp lại 2 lần trong buổi: gọi getSavedShows() suông trong useFocusEffect khiến màn Saved không tự cập nhật sau khi unsave 1 show — trông giống hệt cấu trúc code đúng (có useFocusEffect + useCallback) nên dễ tưởng đã làm đúng, phải đọc kỹ xem gọi đúng biến refetch hay gọi nhầm hàm gốc.
+
+### 4. Cú pháp arrow function: implicit return vs block với return tường minh, và ràng buộc từ hook cha
+
+- () => X (không {}) tự động trả về X, chỉ dùng khi toàn bộ logic là 1 biểu thức duy nhất — đây là cú pháp JavaScript tổng quát, không riêng gì React/hook.
+- () => { ... } (có {}) cho phép nhiều dòng lệnh, nhưng phải tự viết return nếu muốn trả về giá trị, nếu không sẽ tự động trả về undefined.
+- Quan trọng hơn "1 dòng hay nhiều dòng": phải xét hook cha yêu cầu kiểu trả về gì. useFocusEffect chỉ chấp nhận void hoặc cleanup function, KHÔNG chấp nhận Promise — nếu callback bên trong gọi 1 hàm async bằng implicit return, kết quả trả ra là Promise và TypeScript báo lỗi type ngay. Bắt buộc phải dùng {} không return để "nuốt" mất Promise đó, chỉ giữ lại hành động thực thi (kết quả cuối cùng tự động là undefined, hợp lệ với useFocusEffect).
+
+### 5. Frequency counter — đếm tần suất bằng object, tìm giá trị lớn nhất
+
+- Pattern "sổ đếm": counter[key] = (counter[key] ?? 0) + 1 — lần đầu gặp key, counter[key] là undefined, ?? 0 cho ra 0, cộng 1 ra 1; lần sau gặp lại, cộng dồn tiếp. Đây là ứng dụng thực tế của nullish coalescing đã học trước đó.
+- Khi dữ liệu lồng nhau (1 show có nhiều genre bên trong mảng genres), cần 2 tầng lặp: lặp qua từng show, rồi với mỗi show lặp qua từng genre bên trong nó — không phải lặp phẳng 1 tầng.
+- Không có hàm dựng sẵn để tìm key có value lớn nhất trong object — phải tự duyệt qua Object.entries() (chuyển object thành mảng cặp [key, value]) và so sánh thủ công để tìm max.
+- reduce có thể dùng để build ra 1 object (không chỉ cộng dồn ra số như đã quen) — chỉ khác kiểu "thùng chứa" khởi tạo ban đầu truyền vào tham số thứ 2 của reduce.
+
+### 6. Làm tròn số nhiều lần liên tiếp gây sai số tích lũy — phải làm tròn/đổi thang đúng 1 lần, ở bước cuối cùng
+
+- Bug thực tế: đổi thang điểm (chia 2, từ thang 0-10 sang thang 0-5) ngay TRONG bước reduce (cho từng show riêng lẻ) trước khi cộng dồn, thay vì cộng nguyên giá trị gốc rồi mới đổi thang 1 lần duy nhất ở bước cuối — kết quả trung bình bị lệch so với cách tính đúng, vì làm tròn sớm ở từng bước nhỏ làm mất độ chính xác của phép tính tổng thể.
+- Quy tắc chung: khi cần cả "tính trung bình" và "đổi thang/làm tròn", nên cộng dồn giá trị gốc chưa qua biến đổi trước, chỉ áp dụng phép biến đổi (chia thang, làm tròn) đúng 1 lần duy nhất tại bước cuối cùng của toàn bộ phép tính.
+
+### 7. JSX: `{}` là ranh giới bắt buộc để "nhảy vào chế độ JavaScript" — nhầm vị trí dấu ngoặc gây lỗi runtime khó đọc
+
+- Nếu viết `( điều_kiện && <JSX/> )` mà không bọc trong `{}`, React Native hiểu toàn bộ chuỗi ký tự đó là text thô cần render trực tiếp — gây lỗi "Text string must be rendered within a text component", dù nhìn qua tưởng là code JS hợp lệ.
+- Khi bọc nhiều component trong 1 điều kiện `{cond && (...)}`, phải cẩn thận đặt đúng vị trí dấu đóng `)`/`}` — đóng sớm quá sẽ khiến các phần tử JSX phía sau bị "văng ra ngoài" phạm vi điều kiện, và các thẻ đóng tương ứng phía dưới trở thành thẻ đóng không khớp thẻ mở nào, dễ gây lỗi cấu trúc khó dò tìm nếu chỉ đọc từ trên xuống.
