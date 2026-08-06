@@ -61,6 +61,7 @@ interface SavedShow {
   poster_url: string;
   rating: number | null;
   premiered: string | null;
+  genres: string[] | null;
 }
 
 // TVmaze's /shows/:id endpoint returns the same shape as the show index,
