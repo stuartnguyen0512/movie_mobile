@@ -86,7 +86,7 @@ const ShowDetails = () => {
             className="absolute bottom-5 right-24 rounded-full size-14 bg-white flex items-center justify-center"
           >
             <Image
-              tintColor={isSaved ? "#2E6F40" : "#ffffff"}
+              tintColor={isSaved ? "#2E6F40" : "#000000"}
               source={icons.save}
               className="w-6 h-6"
               resizeMode="contain"

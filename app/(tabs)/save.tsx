@@ -3,23 +3,26 @@ import { View, Text, ActivityIndicator, FlatList, Image } from "react-native";
 import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 
-// TODO 1: import useFetch từ "@/services/useFetch"
-// TODO 2: import getSavedShows từ "@/services/appwrite"
 import SavedShowCard from "@/components/SavedShowCard";
 import useFetch from "@/services/useFetch";
 import { getSavedShows } from "@/services/appwrite";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import { useFocusEffect } from "expo-router";
 
 const Save = () => {
-  // TODO 3: gọi useFetch(getSavedShows) để lấy data/loading/error
   const {
     data: rawSavedShows,
+    refetch: refetchSavedShows,
     loading,
     error,
-  } = useFetch(() => getSavedShows(), true);
-  // Gợi ý đặt tên: const { data: rawSavedShows, loading, error } = useFetch(getSavedShows);
-  // TODO 4: xử lý null giống search.tsx — rawSavedShows ?? []
+  } = useFetch(useCallback(() => getSavedShows(), []));
   const savedShow = rawSavedShows ?? [];
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchSavedShows();
+    }, [refetchSavedShows]),
+  );
 
   return (
     <View className="flex-1 bg-primary">
@@ -30,7 +33,6 @@ const Save = () => {
       />
       <FlatList
         className="px-5"
-        // TODO 5: data={savedShows}
         data={savedShow}
         keyExtractor={(item: any) => item.$id}
         renderItem={({ item }) => <SavedShowCard {...item} />}
